@@ -19,7 +19,7 @@
 Most AI tutorials teach you to build this:
 
 ```
-You: "My name is Nikola"
+You: "My name is nKOxxx"
 Agent: "Nice to meet you!"
 
 You: [close program and reopen]
