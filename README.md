@@ -101,14 +101,14 @@ Each session builds on the previous one. You can do one per day, or binge them a
 
 | Session | What You Build | Key Concept | Code |
 |---------|---------------|-------------|------|
-| **01** | Your first agent (50 lines) | *"One loop & bash is all you need"* | ✅ Ready |
-| **02** | Multi-tool agent | *"Adding tools without changing the loop"* | ✅ Ready |
-| **03** | Task planner | *"An agent without a plan drifts"* | ✅ Ready |
-| **04** | Agent with memory | *"I wake up fresh each session. Files are my continuity."* | ✅ Ready |
-| **05** | Personality & context | *"Who you are and who you're helping"* | 📝 Guide |
-| **06** | Proactive execution | *"Don't just respond — anticipate"* | 📝 Guide |
-| **07** | Parallel sub-agents | *"One mind, many hands"* | 📝 Guide |
-| **08** | Secure credential sharing | *"Trust without exposure"* | 📝 Guide |
+| **01** | Your first agent (50 lines) | *"One loop & bash is all you need"* | ✅ Working Code |
+| **02** | Multi-tool agent | *"Adding tools without changing the loop"* | ✅ Working Code |
+| **03** | Task planner | *"An agent without a plan drifts"* | ✅ Working Code |
+| **04** | Agent with memory | *"I wake up fresh each session. Files are my continuity."* | ✅ Working Code |
+| **05** | Personality & context | *"Who you are and who you're helping"* | ✅ Working Code |
+| **06** | Proactive execution | *"Don't just respond — anticipate"* | ✅ Working Code |
+| **07** | Parallel sub-agents | *"One mind, many hands"* | ✅ Working Code |
+| **08** | Secure credential sharing | *"Trust without exposure"* | ✅ Working Code |
 | **09** | Multi-agent network | *"No agent is an island"* | 📝 Guide |
 | **10** | Rules & boundaries | *"Freedom within fences"* | 📝 Guide |
 | **11** | Modular capabilities | *"Learn once, use everywhere"* | 📝 Guide |

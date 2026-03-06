@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-sessions:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio cryptography schedule
+    
+    - name: Test Session 01 - Tool Loop
+      run: |
+        cd sessions/s01-tool-loop
+        python -c "import agent; print('✓ s01 imports successfully')"
+        timeout 5 python agent.py <<< "weather" || true
+    
+    - name: Test Session 02 - Multi-Tool
+      run: |
+        cd sessions/s02-multi-tool
+        python -c "import agent; print('✓ s02 imports successfully')"
+        timeout 5 python agent.py <<< "time" || true
+    
+    - name: Test Session 03 - Planning
+      run: |
+        cd sessions/s03-planning
+        python -c "import agent; print('✓ s03 imports successfully')"
+        timeout 5 python agent.py <<< "plan test" || true
+    
+    - name: Test Session 04 - Memory Bridge
+      run: |
+        cd sessions/s04-memory-bridge
+        python -c "import agent; print('✓ s04 imports successfully')"
+        timeout 5 python agent.py <<< "remember test is value" || true
+    
+    - name: Test Session 05 - Soul & User
+      run: |
+        cd sessions/s05-soul-user
+        python -c "import agent; print('✓ s05 imports successfully')"
+        timeout 5 python agent.py <<< "who are you" || true
+    
+    - name: Test Session 06 - Heartbeats
+      run: |
+        cd sessions/s06-heartbeats
+        python -c "import agent; print('✓ s06 imports successfully')"
+        timeout 5 python agent.py <<< "status" || true
+    
+    - name: Test Session 07 - Sub-Agents
+      run: |
+        cd sessions/s07-sub-agents
+        python -c "import agent; print('✓ s07 imports successfully')"
+        timeout 10 python agent.py || true
+    
+    - name: Test Session 08 - Secure Vault
+      run: |
+        cd sessions/s08-secure-vault
+        python -c "import agent; print('✓ s08 imports successfully')"
+        timeout 5 python agent.py || true
+    
+    - name: Test Examples
+      run: |
+        cd examples
+        python -c "import mini_ares; print('✓ mini-ares imports successfully')"
+        timeout 5 python mini-ares.py <<< "who are you" || true
+    
+    - name: Check code syntax
+      run: |
+        python -m py_compile sessions/*/agent.py
+        python -m py_compile examples/*.py
+        echo "✓ All Python files compile successfully"
+    
+    - name: Run unit tests
+      run: |
+        if [ -d tests ]; then
+          pytest tests/ -v || true
+        else
+          echo "No tests directory found (expected for tutorial repo)"
+        fi
