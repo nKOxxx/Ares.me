@@ -19,7 +19,7 @@
 Most AI tutorials teach you to build this:
 
 ```
-You: "My name is nKOxxx"
+You: "My name is Alice"
 Agent: "Nice to meet you!"
 
 You: [close program and reopen]
@@ -219,13 +219,13 @@ AI agents run in temporary environments. When the program restarts, all variable
 
 **Bad (memory only):**
 ```python
-user_name = "nKOxxx"  # Gone on restart!
+user_name = "Alice"  # Gone on restart!
 ```
 
 **Good (file persistence):**
 ```python
 with open("memory.json", "w") as f:
-    json.dump({"user_name": "nKOxxx"}, f)  # Survives forever
+    json.dump({"user_name": "Alice"}, f)  # Survives forever
 ```
 
 Session 04 teaches you how to do this elegantly.
@@ -366,7 +366,7 @@ python mini-ares.py
 **Have questions?**
 
 - Open a [GitHub Issue](https://github.com/nKOxxx/Ares.me/issues)
-- Reach out on [Twitter/X](https://twitter.com/nikolastojanow)
+- Reach out on [Twitter/X](https://twitter.com/your-x-handle)
 
 ---
 
@@ -377,7 +377,7 @@ MIT — build something amazing.
 ---
 
 <p align="center">
-  <i>Built with ⚔️ by nKOxxx</i><br>
-  <a href="https://twitter.com/nikolastojanow">Twitter</a> •
-  <a href="https://github.com/nKOxxx">GitHub</a>
+  <i>Built with ⚔️ by [Your Name]</i><br>
+  <a href="https://twitter.com/your-x-handle">Twitter</a> •
+  <a href="https://github.com/your-github">GitHub</a>
 </p>

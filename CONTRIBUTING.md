@@ -39,7 +39,7 @@ Want to add a session? Consider:
 
 ## Questions?
 
-Open an issue or reach out on Twitter: [@nikolastojanow](https://twitter.com/nikolastojanow)
+Open an issue or reach out on Twitter: [@your-x-handle](https://twitter.com/your-x-handle)
 
 ## License
 
