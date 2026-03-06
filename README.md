@@ -109,10 +109,10 @@ Each session builds on the previous one. You can do one per day, or binge them a
 | **06** | Proactive execution | *"Don't just respond — anticipate"* | ✅ Working Code |
 | **07** | Parallel sub-agents | *"One mind, many hands"* | ✅ Working Code |
 | **08** | Secure credential sharing | *"Trust without exposure"* | ✅ Working Code |
-| **09** | Multi-agent network | *"No agent is an island"* | 📝 Guide |
-| **10** | Rules & boundaries | *"Freedom within fences"* | 📝 Guide |
-| **11** | Modular capabilities | *"Learn once, use everywhere"* | 📝 Guide |
-| **12** | Production deployment | *"Real world, real impact"* | 📝 Guide |
+| **09** | Multi-agent network | *"No agent is an island"* | ✅ Working Code |
+| **10** | Rules & boundaries | *"Freedom within fences"* | ✅ Working Code |
+| **11** | Modular capabilities | *"Learn once, use everywhere"* | ✅ Working Code |
+| **12** | Production deployment | *"Real world, real impact"* | ✅ Working Code |
 
 **Legend:** ✅ = Working code included | 📝 = Concept guide (you build it)
 
