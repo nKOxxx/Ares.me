@@ -2,51 +2,104 @@
 
 > **"Adding a tool means adding one handler — the loop stays the same"**
 
-## What You Build
+Now that you understand the core loop, let's make it **extensible**. In this session, you'll build an agent that can handle any number of tools without changing the loop code.
 
-An agent with **extensible tools** that can:
-- Register new tools without touching the core loop
-- Handle multiple tools per conversation
-- Route tool calls to the right handler automatically
+## 🎯 What You'll Build
 
-## The Pattern
+An agent with **4 tools** that can:
+- Check the weather
+- Do math calculations  
+- Tell you the time
+- Search the web (simulated)
+
+**The magic:** Adding a new tool only requires adding 3 lines of code. The loop never changes.
+
+---
+
+## 🚀 Quick Start
+
+### Run It
+
+```bash
+cd sessions/s02-multi-tool
+python agent.py
+```
+
+### Try These Commands
+
+```
+You: What's the weather in Paris?
+Agent: The weather in Paris is cloudy, 18°C
+
+You: Calculate 15 * 7 + 3
+Agent: Result: 108
+
+You: What time is it?
+Agent: Current time (UTC): 2026-03-06 14:30:45
+
+You: Search for Python tutorials
+Agent: Search results for 'Python tutorials': [Simulated result 1, Simulated result 2]
+```
+
+---
+
+## 📖 The Architecture
+
+### The Problem with Session 01
+
+In Session 01, if statements decided which tool to use:
 
 ```python
-# Register tools in a dictionary
+# Session 01 approach (bad for scaling)
+if "weather" in message:
+    use_weather_tool()
+elif "math" in message:
+    use_calculator()
+elif "time" in message:
+    use_time_tool()
+# ... this gets messy fast!
+```
+
+**Problem:** Every new tool = more if statements. The code grows, gets messy, and breaks.
+
+### The Solution: Tool Registry
+
+```python
+# Tool implementations (just functions)
+def get_weather(city): ...
+def calculator(expr): ...
+def get_time(): ...
+
+# Registry (just a dictionary)
 TOOL_HANDLERS = {
     "get_weather": get_weather,
     "calculate": calculator,
-    "search_web": web_search,
+    "get_time": get_time,
 }
 
-# Execute dynamically
-def execute_tools(calls):
-    return [TOOL_HANDLERS[c["name"]](**c["input"]) for c in calls]
+# Execution (one line, never changes!)
+handler = TOOL_HANDLERS[tool_name]
+result = handler(**parameters)
 ```
 
-## The Code
+**Benefits:**
+- ✅ Add tools without touching the loop
+- ✅ Clean, organized code
+- ✅ Easy to test each tool separately
+- ✅ Tools can be in separate files
 
-### `agent.py`
+---
+
+## 🔍 Code Walkthrough
+
+### Step 1: Tool Implementations
+
+Each tool is just a Python function:
 
 ```python
-#!/usr/bin/env python3
-"""
-Session 02: Multi-Tool Architecture
-Extensible tool system.
-"""
-
-from typing import List, Dict, Callable
-from datetime import datetime
-import random
-
-
-# ============================================================================
-# TOOL IMPLEMENTATIONS
-# ============================================================================
-
 def get_weather(city: str) -> str:
     """Get weather for a city."""
-    conditions = ["sunny", "cloudy", "rainy", "partly cloudy"]
+    conditions = ["sunny", "cloudy", "rainy"]
     temp = random.randint(15, 30)
     condition = random.choice(conditions)
     return f"The weather in {city} is {condition}, {temp}°C"
@@ -58,7 +111,7 @@ def calculator(expression: str) -> str:
         # Only allow safe characters
         allowed = set("0123456789+-*/(). ")
         if not all(c in allowed for c in expression):
-            return "Error: Invalid characters in expression"
+            return "Error: Invalid characters"
         result = eval(expression)
         return f"Result: {result}"
     except Exception as e:
@@ -73,20 +126,31 @@ def get_time(timezone: str = "UTC") -> str:
 
 def search_web(query: str) -> str:
     """Simulate web search."""
-    return f"Search results for '{query}': [Simulated result 1, Simulated result 2]"
+    return f"Search results for '{query}': [Result 1, Result 2]"
+```
 
+**Key insight:** Each tool is just a function that takes inputs and returns a string.
 
-# ============================================================================
-# TOOL REGISTRY
-# ============================================================================
+### Step 2: Tool Registry
 
+```python
+# Map tool names to functions
 TOOL_HANDLERS: Dict[str, Callable] = {
     "get_weather": get_weather,
     "calculate": calculator,
     "get_time": get_time,
     "search_web": search_web,
 }
+```
 
+**Why this is powerful:**
+- The LLM returns `"get_weather"` as a string
+- We look it up in the dictionary
+- We call the function automatically
+
+### Step 3: Tool Definitions (for the LLM)
+
+```python
 TOOL_DEFINITIONS = [
     {
         "name": "get_weather",
@@ -99,186 +163,201 @@ TOOL_DEFINITIONS = [
             "required": ["city"]
         }
     },
-    {
-        "name": "calculate",
-        "description": "Evaluate a mathematical expression (e.g., '2 + 2', '10 * 5')",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "expression": {"type": "string", "description": "Math expression to evaluate"}
-            },
-            "required": ["expression"]
-        }
-    },
-    {
-        "name": "get_time",
-        "description": "Get current date and time",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "timezone": {"type": "string", "description": "Timezone (default: UTC)"}
-            }
-        }
-    },
-    {
-        "name": "search_web",
-        "description": "Search the web for information",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "Search query"}
-            },
-            "required": ["query"]
-        }
-    }
+    # ... more tools
 ]
+```
 
+**Why this matters:** The LLM uses these descriptions to decide which tool to call. Good descriptions = better tool selection.
 
-# ============================================================================
-# AGENT LOOP (UNCHANGED FROM S01!)
-# ============================================================================
+### Step 4: Tool Execution (The Magic)
 
-def mock_llm(messages: List[Dict], tools: List[Dict]) -> Dict:
-    """Simulates LLM with tool detection."""
-    last_message = messages[-1]["content"].lower()
-    
-    # Simple pattern matching
-    if "weather" in last_message:
-        city = "London" if "london" in last_message else "New York"
-        return {
-            "role": "assistant",
-            "content": [{"type": "tool_use", "name": "get_weather", "input": {"city": city}}]
-        }
-    elif any(op in last_message for op in ["+", "-", "*", "/", "calculate", "math"]):
-        # Extract expression (simplified)
-        return {
-            "role": "assistant",
-            "content": [{"type": "tool_use", "name": "calculate", "input": {"expression": "2 + 2"}}]
-        }
-    elif "time" in last_message:
-        return {
-            "role": "assistant",
-            "content": [{"type": "tool_use", "name": "get_time", "input": {}}]
-        }
-    
-    return {
-        "role": "assistant",
-        "content": [{"type": "text", "text": "I can help with weather, calculations, time, or web search!"}]
-    }
-
-
+```python
 def execute_tools(tool_calls: List[Dict]) -> List[Dict]:
     """Execute tools using the registry."""
     results = []
     
     for call in tool_calls:
-        name = call.get("name")
-        handler = TOOL_HANDLERS.get(name)
+        name = call.get("name")           # "get_weather"
+        handler = TOOL_HANDLERS.get(name)  # Look up function
         
         if handler:
             try:
+                # Call the function with parameters
                 output = handler(**call.get("input", {}))
                 results.append({
                     "type": "tool_result",
-                    "tool_use_id": call.get("id"),
                     "content": output
                 })
             except Exception as e:
                 results.append({
-                    "type": "tool_result",
-                    "tool_use_id": call.get("id"),
+                    "type": "tool_result", 
                     "content": f"Error: {str(e)}"
                 })
-        else:
-            results.append({
-                "type": "tool_result",
-                "tool_use_id": call.get("id"),
-                "content": f"Error: Unknown tool '{name}'"
-            })
     
     return results
-
-
-def agent_loop(user_input: str) -> str:
-    """The core agent loop — identical to S01!"""
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant with access to multiple tools."},
-        {"role": "user", "content": user_input}
-    ]
-    
-    while True:
-        response = mock_llm(messages, TOOL_DEFINITIONS)
-        messages.append({"role": "assistant", "content": response["content"]})
-        
-        tool_calls = [c for c in response["content"] if c.get("type") == "tool_use"]
-        
-        if not tool_calls:
-            text_parts = [c.get("text", "") for c in response["content"] if c.get("type") == "text"]
-            return "".join(text_parts)
-        
-        results = execute_tools(tool_calls)
-        messages.append({"role": "user", "content": results})
-
-
-def main():
-    print("⚔️ Ares Session 02: Multi-Tool Architecture")
-    print("Available tools: weather, calculate, time, search")
-    print("Type 'exit' to quit\n")
-    
-    while True:
-        user_input = input("You: ").strip()
-        
-        if user_input.lower() in ("exit", "quit"):
-            break
-        
-        if not user_input:
-            continue
-        
-        response = agent_loop(user_input)
-        print(f"Agent: {response}\n")
-
-
-if __name__ == "__main__":
-    main()
 ```
 
-## Key Insights
+**Notice:** This code doesn't change no matter how many tools you add!
 
-### 1. The Loop Never Changes
-Look at `agent_loop()` — it's **identical** to Session 01. We just:
-- Added more tools to the registry
-- The loop handles them automatically
+---
 
-### 2. Registration Pattern
+## 🛠️ Exercises
+
+### Exercise 1: Add a Translate Tool
+
 ```python
-TOOL_HANDLERS = {
-    "tool_name": function_impl,
+def translate(text: str, target_language: str = "Spanish") -> str:
+    """Simulate translation."""
+    translations = {
+        "hello": {"Spanish": "hola", "French": "bonjour"},
+        "goodbye": {"Spanish": "adiós", "French": "au revoir"},
+    }
+    word = text.lower()
+    if word in translations:
+        return f"'{text}' in {target_language}: {translations[word].get(target_language, 'unknown')}"
+    return f"Translation not available for '{text}'"
+
+# Add to registry
+TOOL_HANDLERS["translate"] = translate
+
+# Add definition
+{
+    "name": "translate",
+    "description": "Translate text to another language",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string"},
+            "target_language": {"type": "string", "enum": ["Spanish", "French"]}
+        },
+        "required": ["text"]
+    }
 }
 ```
 
-Add a tool? Just add to this dict. No loop changes.
-
-### 3. Error Handling
-```python
-def execute_tools(calls):
-    for call in calls:
-        handler = TOOL_HANDLERS.get(name)
-        if not handler:
-            return error("Unknown tool")
-        try:
-            return handler(**args)
-        except Exception as e:
-            return error(str(e))
+Test it:
+```
+You: Translate 'hello' to Spanish
+Agent: 'hello' in Spanish: hola
 ```
 
-Tools can fail. Handle it gracefully.
+### Exercise 2: Tools in Separate Files
 
-## Homework
+For larger projects, move tools to their own file:
 
-1. **Add 2 new tools** (e.g., `translate`, `random_fact`)
-2. **Add tool descriptions** that the LLM can use
-3. **Connect to real APIs** (OpenWeather, Wolfram Alpha)
+```python
+# tools.py
+def get_weather(city): ...
+def calculator(expr): ...
 
-## Next: Session 03
+# agent.py
+from tools import get_weather, calculator
 
-Learn planning → [s03-planning](../s03-planning/)
+TOOL_HANDLERS = {
+    "get_weather": get_weather,
+    "calculate": calculator,
+}
+```
+
+### Exercise 3: Connect to Real APIs
+
+Make the weather tool real:
+
+```bash
+pip install requests
+```
+
+```python
+import requests
+
+def get_weather(city: str) -> str:
+    """Real weather using OpenWeatherMap API."""
+    API_KEY = "your-api-key"  # Get from openweathermap.org
+    
+    url = f"https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "q": city,
+        "appid": API_KEY,
+        "units": "metric"
+    }
+    
+    response = requests.get(url, params=params)
+    data = response.json()
+    
+    temp = data["main"]["temp"]
+    condition = data["weather"][0]["description"]
+    
+    return f"Weather in {city}: {temp}°C, {condition}"
+```
+
+---
+
+## 🎓 Key Concepts
+
+### 1. Separation of Concerns
+
+| Component | Responsibility | Changes When... |
+|-----------|---------------|-----------------|
+| Tool Functions | Do the actual work | You add a new capability |
+| Tool Registry | Maps names to functions | You add a new tool |
+| Tool Definitions | Describe tools to LLM | You add a new tool |
+| Agent Loop | Orchestrates everything | Never (it's done!) |
+
+### 2. Error Handling
+
+Always handle tool failures gracefully:
+
+```python
+try:
+    output = handler(**parameters)
+except Exception as e:
+    output = f"Error: {str(e)}"
+```
+
+The LLM can then decide what to do with the error.
+
+### 3. Tool Design Best Practices
+
+**Good tool:**
+- Clear name (`get_weather` not `tool1`)
+- Good description
+- Specific parameters
+- Returns string (easy for LLM to understand)
+
+**Bad tool:**
+- Vague name
+- Poor description
+- Ambiguous parameters
+- Returns complex objects
+
+---
+
+## 📊 Comparison: Session 01 vs Session 02
+
+| Aspect | Session 01 | Session 02 |
+|--------|-----------|------------|
+| Tools | 1 (hardcoded) | Unlimited (registry) |
+| Adding tools | Edit loop | Edit registry |
+| Code lines for new tool | ~10 | 3 |
+| Error handling | None | Built-in |
+| Maintainability | Poor | Excellent |
+
+---
+
+## 🚀 Next Steps
+
+Ready for planning? Go to [Session 03: Planning](../s03-planning/)
+
+There you'll learn:
+- How to break big tasks into steps
+- How to get user approval before acting
+- How to handle task dependencies
+
+---
+
+<p align="center">
+  <i>Session 02 of 12 ⚔️</i><br>
+  <a href="../s01-tool-loop/">← Previous</a> •
+  <a href="../../">Home</a> •
+  <a href="../s03-planning/">Next →</a>
+</p>

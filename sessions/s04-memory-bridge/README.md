@@ -2,66 +2,136 @@
 
 > **"I wake up fresh each session. Files are my continuity."**
 
-## What You Build
+This is where we solve the biggest problem in AI agents: **amnesia**. By the end of this session, your agent will remember things across restarts.
 
-An agent that **remembers across restarts** using a simple file-based memory system.
+## 🎯 What You'll Build
 
-## The Problem
+An agent with **persistent memory** that:
+- Remembers your name even after you close the program
+- Stores facts in files (survives crashes)
+- Distinguishes between short-term and long-term memory
+- Forgets things when you tell it to
 
-Standard agents:
-```python
-# Start agent
-agent = Agent()
-agent.chat("My name is Nikola")  # Agent learns
-# ... restart ...
-agent = Agent()  # Fresh instance
-agent.chat("What's my name?")  # "I don't know"
-```
+---
 
-**Every restart = amnesia.**
+## 🚨 The Problem
 
-## The Solution
+### Try This in a Regular Chatbot
 
 ```python
-# Save memory to file
-memory.save({"user_name": "Nikola", "preferences": {...}})
+# Run 1
+You: My name is Nikola
+Agent: Nice to meet you, Nikola!
+[You close the program]
 
-# On restart, load it back
-memory = Memory.load()
-agent = Agent(memory=memory)
-agent.chat("What's my name?")  # "Your name is Nikola"
+# Run 2 (after restart)
+You: What's my name?
+Agent: I don't have that information.
 ```
 
-## The Architecture
+**Why this happens:** The agent stores everything in RAM (variables). When the program exits, RAM is cleared. Everything is lost.
+
+### The Real-World Impact
+
+Imagine a personal assistant that:
+- ❌ Forgets your dietary restrictions every morning
+- ❌ Doesn't remember you have a meeting at 2pm
+- ❌ Can't recall that you prefer email over Slack
+- ❌ Starts fresh every single day
+
+That's useless. We need **persistence**.
+
+---
+
+## 💡 The Solution: File-Based Memory
+
+### Memory Hierarchy
 
 ```
-┌─────────────────────────────────────┐
-│           AGENT SESSION             │
-│  ┌──────────┐      ┌──────────┐    │
-│  │ Messages │      │ Memory   │────┼──→ memory/
-│  │ (context)│      │ Bridge   │    │    JSON files
-│  └──────────┘      └──────────┘    │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│           AGENT MEMORY                  │
+├─────────────────────────────────────────┤
+│                                         │
+│  🧠 SHORT-TERM (RAM)                    │
+│     • This session only                 │
+│     • Fast access                       │
+│     • Lost on exit                      │
+│                                         │
+│  💾 LONG-TERM (Files)                   │
+│     • Survives restarts                 │
+│     • Slower (disk I/O)                 │
+│     • JSON storage                      │
+│                                         │
+└─────────────────────────────────────────┘
 ```
 
-## The Code
-
-### `memory.py`
+### The Magic
 
 ```python
-#!/usr/bin/env python3
-"""
-Session 04: Memory Bridge
-Cross-session persistence.
-"""
+# Instead of this (lost on exit):
+user_name = "Nikola"  # Gone!
 
-import json
-import os
-from datetime import datetime
-from typing import Dict, Any, Optional
-from pathlib import Path
+# Do this (saved forever):
+with open("memory.json", "w") as f:
+    json.dump({"user_name": "Nikola"}, f)
 
+# Later, load it back:
+with open("memory.json", "r") as f:
+    data = json.load(f)
+    user_name = data["user_name"]  # "Nikola" restored!
+```
 
+---
+
+## 🚀 Quick Start
+
+### Run It
+
+```bash
+cd sessions/s04-memory-bridge
+python agent.py
+```
+
+### The Memory Test
+
+**Step 1:** Tell the agent your name
+```
+You: My name is Alice
+Agent: Nice to meet you, Alice!
+  [Memory: stored user_name = Alice]
+```
+
+**Step 2:** Ask what it knows
+```
+You: What is my name?
+Agent: Your name is Alice.
+```
+
+**Step 3:** Exit and restart
+```
+You: exit
+
+[Run python agent.py again]
+```
+
+**Step 4:** Check if it remembers
+```
+📚 Previous memories loaded:
+  - user_name: Alice
+
+You: What is my name?
+Agent: Your name is Alice.
+```
+
+🎉 **It remembers!** Even though you restarted the program.
+
+---
+
+## 📖 Code Walkthrough
+
+### The MemoryBridge Class
+
+```python
 class MemoryBridge:
     """
     Simple file-based memory system.
@@ -71,277 +141,351 @@ class MemoryBridge:
     """
     
     def __init__(self, memory_dir: str = "memory"):
+        # Create memory folder
         self.memory_dir = Path(memory_dir)
         self.memory_dir.mkdir(exist_ok=True)
         
+        # Two types of memory
         self.short_term: Dict[str, Any] = {}  # This session only
         self.long_term: Dict[str, Any] = {}   # Persisted to disk
         
+        # Load any existing memories
         self._load()
+```
+
+**What it does:**
+- Creates a `memory/` folder to store data
+- Sets up two memory types (short and long term)
+- Automatically loads previous memories
+
+### Storing Memories
+
+```python
+def remember(self, key: str, value: Any, persistent: bool = True):
+    """
+    Store a memory.
     
-    def _load(self):
-        """Load long-term memory from disk."""
-        memory_file = self.memory_dir / "memory.json"
-        if memory_file.exists():
-            with open(memory_file, 'r') as f:
-                self.long_term = json.load(f)
+    Args:
+        key: What to remember (e.g., "user_name")
+        value: The data (e.g., "Alice")
+        persistent: If True, survives restarts
+    """
+    if persistent:
+        # Save to file
+        self.long_term[key] = {
+            "value": value,
+            "stored_at": datetime.now().isoformat()
+        }
+        self._save()  # Write to disk immediately
+    else:
+        # Keep in RAM only
+        self.short_term[key] = value
+```
+
+**Usage examples:**
+
+```python
+# Persistent (survives restart)
+memory.remember("user_name", "Alice")        # Saved to file
+memory.remember("preferences", {"theme": "dark"})  # Saved to file
+
+# Temporary (lost on exit)
+memory.remember("draft_email", "Hi...", persistent=False)  # RAM only
+memory.remember("temp_calculation", 42, persistent=False)  # RAM only
+```
+
+### Retrieving Memories
+
+```python
+def recall(self, key: str) -> Optional[Any]:
+    """Retrieve a memory."""
+    # Check short-term first (faster)
+    if key in self.short_term:
+        return self.short_term[key]
     
-    def _save(self):
-        """Save long-term memory to disk."""
-        memory_file = self.memory_dir / "memory.json"
-        with open(memory_file, 'w') as f:
-            json.dump(self.long_term, f, indent=2)
+    # Then check long-term (slower, from disk)
+    if key in self.long_term:
+        return self.long_term[key]["value"]
     
-    def remember(self, key: str, value: Any, persistent: bool = True):
-        """
-        Store a memory.
-        
-        Args:
-            key: What to remember
-            value: The data
-            persistent: If True, survives restarts
-        """
-        if persistent:
-            self.long_term[key] = {
-                "value": value,
-                "stored_at": datetime.now().isoformat()
-            }
-            self._save()
-        else:
-            self.short_term[key] = value
-    
-    def recall(self, key: str) -> Optional[Any]:
-        """Retrieve a memory."""
-        # Check short-term first
-        if key in self.short_term:
-            return self.short_term[key]
-        
-        # Then long-term
-        if key in self.long_term:
-            return self.long_term[key]["value"]
-        
-        return None
-    
-    def forget(self, key: str):
-        """Remove a memory."""
-        self.short_term.pop(key, None)
-        self.long_term.pop(key, None)
+    return None  # Not found
+```
+
+**Why check short-term first?** It's faster (RAM vs disk).
+
+### The Save/Load Mechanism
+
+```python
+def _save(self):
+    """Save long-term memory to disk."""
+    memory_file = self.memory_dir / "memory.json"
+    with open(memory_file, 'w') as f:
+        json.dump(self.long_term, f, indent=2)
+
+def _load(self):
+    """Load long-term memory from disk."""
+    memory_file = self.memory_dir / "memory.json"
+    if memory_file.exists():
+        with open(memory_file, 'r') as f:
+            self.long_term = json.load(f)
+```
+
+**Why JSON?**
+- Human-readable
+- Universal format
+- Easy to debug
+- Works with any programming language
+
+---
+
+## 🔍 The Full Memory Flow
+
+```
+┌──────────────────────────────────────────────────────┐
+│                  USER SAYS:                          │
+│            "My name is Alice"                        │
+└──────────────────────┬───────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────┐
+│              AGENT PROCESSES INPUT                   │
+│                                                      │
+│  1. Detects pattern "my name is [name]"             │
+│  2. Extracts "Alice"                                 │
+│  3. Calls: memory.remember("user_name", "Alice")    │
+└──────────────────────┬───────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────┐
+│              MEMORY BRIDGE SAVES                     │
+│                                                      │
+│  1. Stores in self.long_term["user_name"]            │
+│  2. Adds timestamp                                   │
+│  3. Calls _save() → writes to memory.json           │
+└──────────────────────┬───────────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────────┐
+│              FILE SYSTEM                             │
+│                                                      │
+│  memory.json now contains:                           │
+│  {                                                   │
+│    "user_name": {                                    │
+│      "value": "Alice",                               │
+│      "stored_at": "2026-03-06T10:30:00"             │
+│    }                                                 │
+│  }                                                   │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Exercises
+
+### Exercise 1: Add Memory Categories
+
+Organize memories by type:
+
+```python
+def remember(self, key: str, value: Any, category: str = "general", persistent: bool = True):
+    if persistent:
+        self.long_term[key] = {
+            "value": value,
+            "category": category,  # NEW
+            "stored_at": datetime.now().isoformat()
+        }
         self._save()
+
+# Usage:
+memory.remember("user_name", "Alice", category="user")
+memory.remember("favorite_color", "blue", category="preferences")
+memory.remember("api_key", "secret", category="secrets")
+```
+
+### Exercise 2: Memory Search
+
+Find memories by partial key:
+
+```python
+def search(self, query: str) -> List[Dict]:
+    """Search memories by key."""
+    results = []
+    for key, data in self.long_term.items():
+        if query.lower() in key.lower():
+            results.append({
+                "key": key,
+                "value": data["value"],
+                "stored_at": data["stored_at"]
+            })
+    return results
+
+# Usage:
+results = memory.search("user")
+# Returns: [{"key": "user_name", "value": "Alice", ...}]
+```
+
+### Exercise 3: Daily Logs
+
+Create a new memory file for each day:
+
+```python
+from datetime import date
+
+def log_daily(self, event: str):
+    """Log something that happened today."""
+    today = date.today().isoformat()  # "2026-03-06"
+    log_file = self.memory_dir / f"{today}.json"
     
-    def get_all(self) -> Dict[str, Any]:
-        """Get all memories (for context injection)."""
-        memories = {}
-        memories.update(self.short_term)
-        memories.update({k: v["value"] for k, v in self.long_term.items()})
-        return memories
-
-
-# ============================================================================
-# AGENT WITH MEMORY
-# ============================================================================
-
-class AgentWithMemory:
-    """Agent that persists across sessions."""
+    # Load existing log or create new
+    if log_file.exists():
+        with open(log_file) as f:
+            log = json.load(f)
+    else:
+        log = {"events": []}
     
+    # Add event
+    log["events"].append({
+        "time": datetime.now().isoformat(),
+        "event": event
+    })
+    
+    # Save
+    with open(log_file, 'w') as f:
+        json.dump(log, f, indent=2)
+
+# Usage:
+memory.log_daily("User mentioned preferring email")
+# Creates: memory/2026-03-06.json
+```
+
+---
+
+## 🎓 Production Patterns
+
+### Pattern 1: The Memory Directory Structure
+
+```
+memory/
+├── memory.json          # Core long-term memories
+├── 2026-03-06.json      # Today's log
+├── 2026-03-05.json      # Yesterday's log
+├── SOUL.json            # Agent personality
+└── USER.json            # User preferences
+```
+
+### Pattern 2: Memory with Context Injection
+
+```python
+class Agent:
     def __init__(self):
         self.memory = MemoryBridge()
-        self.messages = []
         
-        # Inject memories into system prompt
+        # Load memories into system prompt
         memories = self.memory.get_all()
-        context = self._format_memories(memories)
+        context = self._format_context(memories)
         
-        self.messages.append({
-            "role": "system",
-            "content": f"You are a helpful assistant.\n\nCONTEXT:\n{context}"
-        })
+        self.system_prompt = f"""
+        You are a helpful assistant.
+        
+        CONTEXT FROM PREVIOUS CONVERSATIONS:
+        {context}
+        """
     
-    def _format_memories(self, memories: Dict) -> str:
-        """Format memories for LLM context."""
-        if not memories:
-            return "No previous context."
-        
+    def _format_context(self, memories):
         lines = []
         for key, value in memories.items():
             lines.append(f"- {key}: {value}")
         return "\n".join(lines)
-    
-    def chat(self, user_input: str) -> str:
-        """Process user input with memory."""
-        self.messages.append({"role": "user", "content": user_input})
-        
-        # Simulate LLM (replace with real API)
-        response = self._mock_llm()
-        
-        # Extract memories from conversation
-        self._extract_memories(user_input, response)
-        
-        self.messages.append({"role": "assistant", "content": response})
-        return response
-    
-    def _mock_llm(self) -> str:
-        """Simple mock that uses memory."""
-        last_msg = self.messages[-1]["content"].lower()
-        
-        # Check if we know user's name
-        name = self.memory.recall("user_name")
-        
-        if "my name" in last_msg and "what" in last_msg:
-            if name:
-                return f"Your name is {name}."
-            return "I don't know your name yet. What is it?"
-        
-        if "name is" in last_msg:
-            # Extract name (simplified)
-            parts = last_msg.split("name is")
-            if len(parts) > 1:
-                extracted = parts[1].strip().strip(".!?")
-                return f"Nice to meet you, {extracted}! I'll remember that."
-        
-        return f"I processed: '{last_msg}'. Current memories: {self.memory.get_all()}"
-    
-    def _extract_memories(self, user_input: str, response: str):
-        """Extract key info to remember."""
-        # Simple extraction: if user says "my name is X", remember it
-        user_lower = user_input.lower()
-        if "my name is" in user_lower:
-            parts = user_input.split("name is")
-            if len(parts) > 1:
-                name = parts[1].strip().strip(".!?")
-                self.memory.remember("user_name", name)
-                print(f"  [Memory: stored user_name = {name}]")
-
-
-def main():
-    print("⚔️ Ares Session 04: Memory Bridge")
-    print("I remember things across restarts!\n")
-    print(f"Memory location: {Path('memory').absolute()}\n")
-    
-    agent = AgentWithMemory()
-    
-    # Show existing memories
-    memories = agent.memory.get_all()
-    if memories:
-        print("📚 Previous memories loaded:")
-        for key, value in memories.items():
-            print(f"  - {key}: {value}")
-        print()
-    
-    print("Type 'exit' to quit, 'forget' to clear memory\n")
-    
-    while True:
-        user_input = input("You: ").strip()
-        
-        if user_input.lower() in ("exit", "quit"):
-            break
-        
-        if user_input.lower() == "forget":
-            # Clear all memories
-            for key in list(agent.memory.get_all().keys()):
-                agent.memory.forget(key)
-            print("  [All memories cleared]\n")
-            continue
-        
-        if not user_input:
-            continue
-        
-        response = agent.chat(user_input)
-        print(f"Agent: {response}\n")
-    
-    print("\n💾 Memories saved. Restart me and I'll remember!")
-
-
-if __name__ == "__main__":
-    main()
 ```
 
-## Running It
+**Why this works:** The LLM "remembers" by reading the context you provide.
 
-```bash
-python memory.py
-```
+### Pattern 3: Memory Cleanup
 
-**First run:**
-```
-You: My name is Nikola
-Agent: Nice to meet you, Nikola! I'll remember that.
-  [Memory: stored user_name = Nikola]
-```
-
-**Restart and run again:**
-```
-📚 Previous memories loaded:
-  - user_name: Nikola
-
-You: What's my name?
-Agent: Your name is Nikola.
-```
-
-## Key Insights
-
-### 1. Text > Brain
 ```python
-# Mental notes don't survive
-self.knowledge = "User is Nikola"  # Gone on restart
-
-# Files do
-self.memory.remember("user_name", "Nikola")  # Persisted
+def cleanup_old_memories(self, days: int = 30):
+    """Remove memories older than N days."""
+    cutoff = datetime.now() - timedelta(days=days)
+    
+    to_delete = []
+    for key, data in self.long_term.items():
+        stored = datetime.fromisoformat(data["stored_at"])
+        if stored < cutoff:
+            to_delete.append(key)
+    
+    for key in to_delete:
+        del self.long_term[key]
+    
+    self._save()
 ```
 
-### 2. Context Injection
+---
+
+## 🚨 Common Pitfalls
+
+### Pitfall 1: Saving Everything
+
+**Don't:**
 ```python
-memories = self.memory.get_all()
-system_prompt = f"""
-You are a helpful assistant.
-
-CONTEXT:
-- user_name: {memories.get('user_name')}
-- preferences: {memories.get('preferences')}
-"""
+# Bad: Saving every message
+memory.remember(f"msg_{len(messages)}", message)
+# Creates huge files, slows everything down
 ```
 
-Feed memories to the LLM as context. It "remembers" by reading.
-
-### 3. Selective Persistence
+**Do:**
 ```python
-# Remember this forever
-self.memory.remember("user_name", name, persistent=True)
-
-# Temporary only
-self.memory.remember("draft_email", draft, persistent=False)
+# Good: Only save important facts
+memory.remember("user_name", extracted_name)
+memory.remember("meeting_time", extracted_time)
 ```
 
-Not everything needs to survive restarts.
+### Pitfall 2: Blocking on Save
 
-## Production Patterns
-
-### Daily Logs
+**Don't:**
 ```python
-# memory/2026-03-06.md
-memory.remember(f"log_{date}", daily_summary)
+# Bad: Save after every memory (slow)
+for fact in facts:
+    memory.remember(fact)  # Writes to disk every time!
 ```
 
-### Curated Memory
+**Do:**
 ```python
-# MEMORY.md — distilled wisdom
-# memory/*.md — raw daily logs
+# Good: Batch saves
+for fact in facts:
+    memory.long_term[fact] = value
+memory._save()  # One write at the end
 ```
 
-### Vector Search (Advanced)
+### Pitfall 3: No Backup
+
+**Don't:** Rely on a single file
+
+**Do:**
 ```python
-# For large memory stores
-from sentence_transformers import SentenceTransformer
+# Make backups
+import shutil
+from datetime import datetime
 
-embedder = SentenceTransformer('all-MiniLM-L6-v2')
-memory.search("What did we discuss about pricing?")
+def backup_memory(self):
+    backup_name = f"memory_backup_{datetime.now().isoformat()}.json"
+    shutil.copy(self.memory_file, self.memory_dir / backup_name)
 ```
 
-## Homework
+---
 
-1. **Add memory categories** (user_facts, preferences, todos)
-2. **Add memory expiration** (auto-forget old data)
-3. **Implement memory search** (keyword or semantic)
+## 🚀 Next Steps
 
-## Next: Session 05
+Ready for personality? Go to [Session 05: Soul & User](../s05-soul-user/)
 
-Add personality → [s05-soul-user](../s05-soul-user/)
+There you'll learn:
+- How to give your agent a consistent personality
+- How to define who it serves
+- How to use SOUL.md and USER.md
+
+---
+
+<p align="center">
+  <i>Session 04 of 12 ⚔️</i><br>
+  <a href="../s03-planning/">← Previous</a> •
+  <a href="../../">Home</a> •
+  <a href="../s05-soul-user/">Next →</a>
+</p>
