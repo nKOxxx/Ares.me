@@ -20,8 +20,8 @@ An agent with **persistent memory** that:
 
 ```python
 # Run 1
-You: My name is Nikola
-Agent: Nice to meet you, Nikola!
+You: My name is Alice
+Agent: Nice to meet you, Alice!
 [You close the program]
 
 # Run 2 (after restart)
@@ -69,16 +69,16 @@ That's useless. We need **persistence**.
 
 ```python
 # Instead of this (lost on exit):
-user_name = "Nikola"  # Gone!
+user_name = "Alice"  # Gone!
 
 # Do this (saved forever):
 with open("memory.json", "w") as f:
-    json.dump({"user_name": "Nikola"}, f)
+    json.dump({"user_name": "Alice"}, f)
 
 # Later, load it back:
 with open("memory.json", "r") as f:
     data = json.load(f)
-    user_name = data["user_name"]  # "Nikola" restored!
+    user_name = data["user_name"]  # "Alice" restored!
 ```
 
 ---
