@@ -1,0 +1,14 @@
+{
+  "name": "ares-me",
+  "version": "1.0.0",
+  "description": "Build your own AI partner — from zero to family member",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nKOxxx/Ares.me"
+  },
+  "author": "nKOxxx",
+  "license": "MIT",
+  "scripts": {
+    "start": "python sessions/s01-tool-loop/agent.py"
+  }
+}
