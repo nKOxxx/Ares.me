@@ -366,7 +366,7 @@ python mini-ares.py
 **Have questions?**
 
 - Open a [GitHub Issue](https://github.com/nKOxxx/Ares.me/issues)
-- Reach out on [Twitter/X](https://twitter.com/nikolin0)
+- Reach out on [Twitter/X](https://twitter.com/nikolastojanow)
 
 ---
 
@@ -378,6 +378,6 @@ MIT — build something amazing.
 
 <p align="center">
   <i>Built with ⚔️ by nKOxxx</i><br>
-  <a href="https://twitter.com/nikolin0">Twitter</a> •
+  <a href="https://twitter.com/nikolastojanow">Twitter</a> •
   <a href="https://github.com/nKOxxx">GitHub</a>
 </p>
