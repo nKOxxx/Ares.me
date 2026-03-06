@@ -219,13 +219,13 @@ AI agents run in temporary environments. When the program restarts, all variable
 
 **Bad (memory only):**
 ```python
-user_name = "Nikola"  # Gone on restart!
+user_name = "nKOxxx"  # Gone on restart!
 ```
 
 **Good (file persistence):**
 ```python
 with open("memory.json", "w") as f:
-    json.dump({"user_name": "Nikola"}, f)  # Survives forever
+    json.dump({"user_name": "nKOxxx"}, f)  # Survives forever
 ```
 
 Session 04 teaches you how to do this elegantly.
